@@ -34,6 +34,22 @@
 
 </div>
 
+## 🤝 Contributors
+
+Thanks to all the amazing people who have contributed to **eventmgr**! 🎉
+
+<br/>
+
+<div align="center">
+  <a href="https://github.com/anubhavxdev/Event-management-system-main/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=anubhavxdev/Event-management-system-main" alt="Contributors" />
+  </a>
+</div>
+
+<br/>
+
+---
+
 <br/>
 
 ## 🌟 Overview
@@ -264,6 +280,7 @@ pm2 start src/index.js --name eventmanager-api
 Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for more information.
 
 ---
+
 
 <div align="center">
 
