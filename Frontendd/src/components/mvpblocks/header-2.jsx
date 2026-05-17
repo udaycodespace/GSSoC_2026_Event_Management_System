@@ -3,12 +3,12 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence, easeInOut } from "framer-motion";
 import { Menu, X, ArrowRight, Zap, Search, User, LogOut, LayoutDashboard, Settings, ChevronDown } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { Link } from "react-router-dom";
+import { Link, useNavigate} from "react-router-dom";
 
 const navItems = [
   { name: "Home", href: "/" },
   { name: "Features", href: "/features" },
-  { name: "Pricing", href: "/pricing" },
+  { name: "Pricing", href: "#pricing" },
   { name: "About", href: "/about-us" },
   { name: "Contact", href: "/contact" },
 ];
@@ -18,6 +18,7 @@ export default function Header2() {
   const [hoveredItem, setHoveredItem] = useState(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const getDashboardLink = () => {
     if (!user) return "/";
@@ -209,7 +210,7 @@ export default function Header2() {
                           <button
                             onClick={() => {
                               setIsProfileMenuOpen(false);
-                              logout();
+                              logout(navigate);
                             }}
                             className="flex items-center space-x-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
                           >
@@ -316,7 +317,7 @@ export default function Header2() {
                       <button
                         onClick={() => {
                           setIsMobileMenuOpen(false);
-                          logout();
+                          logout(navigate);
                         }}
                         className="flex items-center space-x-2 w-full px-4 py-3 text-sm text-red-500 hover:bg-red-50 rounded-lg font-medium transition-colors duration-200"
                       >

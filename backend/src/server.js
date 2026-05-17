@@ -1,28 +1,10 @@
-import express from 'express';
 import http from 'http';
-import cors from 'cors';
-import morgan from 'morgan';
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-import compression from 'compression';
-import cookieParser from 'cookie-parser';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
+import app from './app.js';
 import { env } from './config/env.js';
 import { connectDB } from './config/db.js';
 import { initSocket } from './services/socket.js';
-import authRoutes from './routes/authRoutes.js';
-import eventRoutes from './routes/eventRoutes.js';
-import registrationRoutes from './routes/registrationRoutes.js';
-import reviewRoutes from './routes/reviewRoutes.js';
-import adminRoutes from './routes/adminRoutes.js';
-import statsRoutes from './routes/statsRoutes.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const app = express();
 const server = http.createServer(app);
 
 // Security & utils
@@ -35,10 +17,27 @@ app.use(cookieParser());
 app.use(compression());
 
 // Basic rate limit
-app.use('/api', rateLimit({ windowMs: 60 * 1000, max: 120 }));
+const parsedApiRateLimitMax = Number.parseInt(
+  process.env.API_RATE_LIMIT_MAX ?? '',
+  10
+);
 
-// Static posters
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+const apiRateLimitMax =
+  Number.isFinite(parsedApiRateLimitMax) &&
+  parsedApiRateLimitMax > 0
+    ? parsedApiRateLimitMax
+    : 120;
+
+const globalRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: apiRateLimitMax,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use('/api', globalRateLimiter);
+
+// Posters are served from Cloudinary CDN — no local static serving needed
 
 // API Routes (mounted later when implemented)
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
@@ -63,12 +62,12 @@ app.use((err, req, res, next) => {
 
 async function start() {
   await connectDB();
+
   initSocket(server, env.clientUrl);
+
   server.listen(env.port, () => {
     console.log(`Server running on http://localhost:${env.port}`);
   });
 }
 
 start();
-
-

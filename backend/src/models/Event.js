@@ -8,9 +8,11 @@ const eventSchema = new mongoose.Schema(
     date: { type: Date, required: true },
     location: { type: String, required: true },
     capacity: { type: Number, default: 0 },
+    registeredCount: { type: Number, default: 0 },
     organizer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     posterUrl: { type: String },
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+    rejectionReason: { type: String, default: '' },
     tags: [{ type: String }],
     averageRating: { type: Number, default: 0 },
   },
@@ -19,5 +21,3 @@ const eventSchema = new mongoose.Schema(
 
 export const Event = mongoose.model('Event', eventSchema);
 export default Event;
-
-
