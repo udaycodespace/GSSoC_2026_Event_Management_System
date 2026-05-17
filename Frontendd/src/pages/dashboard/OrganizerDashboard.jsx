@@ -383,6 +383,20 @@ export default function OrganizerDashboard() {
                                                                 </span>
                                                             </div>
                                                         </div>
+                                                        {event.tags?.length > 0 && (
+                                                            <div className="flex flex-wrap gap-2 mt-3">
+                                                                {event.tags.map((tag) => (
+                                                                    <button
+                                                                        key={tag}
+                                                                        type="button"
+                                                                        onClick={() => navigate(`/?tags=${tag}`)}
+                                                                        className="text-xs bg-purple-500/10 text-purple-500 px-2 py-1 rounded-full hover:bg-purple-500/20 transition"
+                                                                    >
+                                                                        #{tag}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
 
                                                         {/* Management Actions */}
                                                         <div className="flex justify-end mt-4 pt-4 border-t border-border/50">
@@ -480,6 +494,20 @@ export default function OrganizerDashboard() {
                                                                 </span>
                                                             </div>
                                                         </div>
+                                                        {event.tags?.length > 0 && (
+                                                            <div className="flex flex-wrap gap-2 mt-3">
+                                                                {event.tags.map((tag) => (
+                                                                    <button
+                                                                        key={tag}
+                                                                        type="button"
+                                                                        onClick={() => navigate(`/?tags=${tag}`)}
+                                                                        className="text-xs bg-purple-500/10 text-purple-500 px-2 py-1 rounded-full hover:bg-purple-500/20 transition"
+                                                                    >
+                                                                        #{tag}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
 
                                                         {/* Past Actions */}
                                                         <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border/50">

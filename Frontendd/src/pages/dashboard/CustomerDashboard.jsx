@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, MapPin, Ticket, X, Download } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { useAuth } from '../../context/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { API_BASE_URL } from '../../config';
 import { generateCertificate } from '../../utils/generateCertificate';
 import html2canvas from 'html2canvas';
@@ -16,6 +16,8 @@ export default function CustomerDashboard() {
     const [activeTab, setActiveTab] = useState('Upcoming Tickets');
     const [selectedTicket, setSelectedTicket] = useState(null);
     const ticketRef = useRef(null);
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
 
     const [availableEvents, setAvailableEvents] = useState([]);
 
@@ -25,12 +27,19 @@ export default function CustomerDashboard() {
         } else {
             fetchRegistrations();
         }
-    }, [activeTab]);
+    }, [activeTab, searchParams]);
 
     const fetchAvailableEvents = async () => {
+        const tags = searchParams.get('tags');
         try {
             setLoading(true);
-            const res = await fetch(`${API_BASE_URL}/api/events?status=approved`);
+            let url = `${API_BASE_URL}/api/events?status=approved`;
+
+            if (tags) {
+                url += `&tags=${tags}`;
+            }
+
+    const res = await fetch(url);
             if (res.ok) {
                 const data = await res.json();
                 // Filter events that are in the future
@@ -333,6 +342,20 @@ const pastEvents = [
                                                                 </span>
                                                             </div>
                                                         </div>
+                                                        {evt.tags?.length > 0 && (
+                                                            <div className="flex flex-wrap gap-2 mt-3">
+                                                                {evt.tags.map((tag) => (
+                                                                    <button
+                                                                        key={tag}
+                                                                        type="button"
+                                                                        onClick={() => navigate(`?tags=${tag}`)}
+                                                                        className="text-xs bg-rose-500/10 text-rose-500 px-2 py-1 rounded-full hover:bg-rose-500/20 transition"
+                                                                    >
+                                                                        #{tag}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
 
                                                         <div className="flex justify-end pt-4 md:pt-0">
                                                             <Button
