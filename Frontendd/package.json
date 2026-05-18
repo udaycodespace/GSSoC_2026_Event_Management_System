@@ -20,6 +20,7 @@
     "clsx": "^2.1.1",
     "cobe": "^0.6.5",
     "embla-carousel-react": "^8.6.0",
+    "express-validator": "^7.3.2",
     "framer-motion": "^12.23.26",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",

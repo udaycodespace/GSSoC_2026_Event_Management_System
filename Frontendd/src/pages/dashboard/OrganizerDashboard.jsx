@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, MapPin, Users, Plus, Upload, Tag, Search, TrendingUp, IndianRupee, Clock, CheckCircle, XCircle, AlertCircle, Download, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -42,37 +42,13 @@ export default function OrganizerDashboard() {
         byCategory: {}
     });
 
+    const mountedRef = useRef(true);
+
     useEffect(() => {
-        document.title = 'Organizer Dashboard | Event.One';
-        if (user) {
-            fetchMyEvents();
-        }
-    }, [user]);
-
-    const fetchMyEvents = async () => {
-        try {
-            const token = localStorage.getItem('token');
-
-            const res = await fetch(`${API_BASE_URL}/api/events`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                // Filter events where the organizer matches the current user
-                // Adjust logic based on how your backend returns data (populated organizer object vs id)
-                const myEvents = (data.events || []).filter(
-                    e => e.organizer?._id === user?.id || e.organizer === user?.id || e.organizerId === user?.id
-                );
-
-                setEvents(myEvents);
-                calculateStats(myEvents);
-            }
-        } catch (error) {
-            console.error("Failed to fetch events", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+        return () => {
+            mountedRef.current = false;
+        };
+    }, []);
 
     const calculateStats = (events) => {
         const newStats = {
@@ -87,8 +63,46 @@ export default function OrganizerDashboard() {
             const cat = e.category || 'Uncategorized';
             newStats.byCategory[cat] = (newStats.byCategory[cat] || 0) + 1;
         });
-        setStats(newStats);
+        if (mountedRef.current) {
+            setStats(newStats);
+        }
     };
+
+    const fetchMyEvents = useCallback(async () => {
+        try {
+            const token = localStorage.getItem('token');
+
+            const res = await fetch(`${API_BASE_URL}/api/events`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok && mountedRef.current) {
+                const data = await res.json();
+                // Filter events where the organizer matches the current user
+                // Adjust logic based on how your backend returns data (populated organizer object vs id)
+                const myEvents = (data.events || []).filter(
+                    e => e.organizer?._id === user?.id || e.organizer === user?.id || e.organizerId === user?.id
+                );
+
+                setEvents(myEvents);
+                calculateStats(myEvents);
+            }
+        } catch (error) {
+            console.error("Failed to fetch events", error);
+        } finally {
+            if (mountedRef.current) {
+                setLoading(false);
+            }
+        }
+    }, [user]);
+
+    useEffect(() => {
+        document.title = 'Organizer Dashboard | Event.One';
+        if (user) {
+            (async () => {
+                await fetchMyEvents();
+            })();
+        }
+    }, [user, fetchMyEvents]);
 
     const handleDownloadCSV = (eventId) => {
         const token = localStorage.getItem('token');

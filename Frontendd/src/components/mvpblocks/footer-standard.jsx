@@ -3,8 +3,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { LegalModal } from "../ui/legal-modal";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 import { legalContent } from "../../data/legalContent";
 import {
   Github,
@@ -216,17 +214,16 @@ export default function FooterStandard() {
                 <ul className="space-y-2">
                   {data().navigation[section].map((item) => (
                     <li key={item.name}>
-                    <Link
-  to={item.href}
-  onClick={(e) => {
-    if (section === "legal") {
-      handleLegalClick(e, item.href);
-    }
-  }}
-  className="text-xs text-slate-600 hover:text-rose-600 transition-colors cursor-pointer"
->
-  {item.name}
-</Link>
+                     <Link
+                        to={item.href}
+                        onClick={(e) => {
+                          if (section === 'legal') {
+                            handleLegalClick(e, item.href);
+                          }
+                        }}
+                        className="text-xs text-slate-600 hover:text-rose-600 transition-colors cursor-pointer">
+                          {item.name}
+                        </Link>
                     </li>
                   ))}
                 </ul>
@@ -244,7 +241,21 @@ export default function FooterStandard() {
           <p>
             &copy; {currentYear} Eventone | All rights reserved
           </p>
-        </div>
+
+          <div className="flex items-center gap-4">
+
+            {data().bottomLinks.map(({ href, label }) => (
+              <a
+                key={label}
+                href={href}
+                onClick={(e) => handleLegalClick(e, href)}
+                className="text-xs text-slate-600 hover:text-rose-600 transition-colors cursor-pointer"
+              >
+                {label}
+              </a>
+            ))}
+
+          </div>
 
         {/* Divider */}
         <div className="h-px bg-slate-200 my-10"></div>
@@ -290,7 +301,8 @@ export default function FooterStandard() {
             <Heart className="h-3 w-3 text-rose-500 fill-rose-500" />
           </p>
         </div>
-      </div>
+        </div>  {/* Close grid container from line 263 */}
+      </div>    {/* Close bottom section from line 238 */}
 
       {/* Legal Modal */}
       <LegalModal

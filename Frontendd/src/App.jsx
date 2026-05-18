@@ -26,6 +26,7 @@ import { useAuth } from "./context/AuthContext";
 import ScrollToTop from "./components/ui/ScrollToTop";
 
 // Protected Route Component
+// Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
 
@@ -62,7 +63,6 @@ const App = () => {
   },[darkMode]);
   return (
     <BrowserRouter>
-      <ScrollToTop />
       <div className="min-h-screen flex flex-col">
         {/* Header */}
         <Header2 darkMode={darkMode} setDarkMode={setDarkMode} />  
