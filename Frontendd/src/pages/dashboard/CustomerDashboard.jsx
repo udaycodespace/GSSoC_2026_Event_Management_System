@@ -354,9 +354,16 @@ export default function CustomerDashboard() {
                                 </>
                               )}
                             </div>
-                        )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
-                        {activeTab === 'Browse Events' && (
+            {activeTab === 'Browse Events' && (
                             <div className="space-y-6">
                                 {availableEvents.length === 0 ? (
                                     <motion.div
