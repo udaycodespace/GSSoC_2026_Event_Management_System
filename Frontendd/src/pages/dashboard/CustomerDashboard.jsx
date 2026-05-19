@@ -1,13 +1,21 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback } from "react";
-import CountdownTimer from "../../components/CountdownTimer";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+} from "react";
+
 import { Calendar, MapPin, Ticket } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useSearchParams } from "react-router-dom";
 import { API_BASE_URL } from "../../config";
 import ConfirmationModal from "../../components/ui/confirmation-modal";
+
+import CountdownTimer from "../../components/CountdownTimer";
+
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -20,26 +28,51 @@ export default function CustomerDashboard() {
   const [activeTab, setActiveTab] = useState("Upcoming Tickets");
   const [selectedTicket, setSelectedTicket] = useState(null);
 
-  const [availableEvents, setAvailableEvents] = useState([]);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRegistrationId, setSelectedRegistrationId] = useState(null);
 
   const [searchParams] = useSearchParams();
 
-  // ✅ FIX: separate refs per ticket (important for html2canvas)
   const ticketRefs = useRef({});
-
   const mountedRef = useRef(true);
 
   // =========================
-  // Fetch Events
+  // Fetch Registrations
   // =========================
-  const fetchAvailableEvents = useCallback(async () => {
-    const tags = searchParams.get("tags");
-
+  const fetchRegistrations = useCallback(async () => {
     try {
       setLoading(true);
+
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(
+        `${API_BASE_URL}/api/registrations/me`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (res.ok && mountedRef.current) {
+        const data = await res.json();
+        setRegistrations(data.registrations || []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // =========================
+  // Fetch Events (optional tab)
+  // =========================
+  const fetchAvailableEvents = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      const tags = searchParams.get("tags");
 
       let url = `${API_BASE_URL}/api/events?status=approved`;
       if (tags) url += `&tags=${tags}`;
@@ -53,52 +86,24 @@ export default function CustomerDashboard() {
           (evt) => new Date(evt.date) >= new Date()
         );
 
-        setAvailableEvents(upcoming);
+        setRegistrations(upcoming);
       }
-    } catch (error) {
-      console.error("Failed to fetch events", error);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
   }, [searchParams]);
 
   // =========================
-  // Fetch Registrations
-  // =========================
-  const fetchRegistrations = useCallback(async () => {
-    try {
-      if (mountedRef.current) setLoading(true);
-
-      const token = localStorage.getItem("token");
-
-      const res = await fetch(`${API_BASE_URL}/api/registrations/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (res.ok && mountedRef.current) {
-        const data = await res.json();
-        setRegistrations(data.registrations || []);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, []);
-
-  // =========================
   // useEffect
   // =========================
   useEffect(() => {
-    (async () => {
-      if (activeTab === "Browse Events") {
-        await fetchAvailableEvents();
-      } else {
-        await fetchRegistrations();
-      }
-    })();
+    if (activeTab === "Browse Events") {
+      fetchAvailableEvents();
+    } else {
+      fetchRegistrations();
+    }
 
     return () => {
       mountedRef.current = false;
@@ -126,7 +131,7 @@ export default function CustomerDashboard() {
       const data = await res.json();
 
       if (res.ok) {
-        alert(data.message || "Registered");
+        alert(data.message || "Registered successfully");
         setActiveTab("Upcoming Tickets");
         fetchRegistrations();
       } else {
@@ -134,7 +139,6 @@ export default function CustomerDashboard() {
       }
     } catch (err) {
       console.error(err);
-      alert("Something went wrong");
     }
   };
 
@@ -155,34 +159,29 @@ export default function CustomerDashboard() {
         }
       );
 
-      const data = await res.json();
+      if (res.ok) {
+        setRegistrations((prev) =>
+          prev.map((r) =>
+            r._id === selectedRegistrationId
+              ? { ...r, status: "cancelled" }
+              : r
+          )
+        );
+      }
 
-      if (!res.ok) throw new Error(data.message || "Failed to cancel");
-
-      setRegistrations((prev) =>
-        prev.map((r) =>
-          r._id === selectedRegistrationId
-            ? { ...r, status: "cancelled" }
-            : r
-        )
-      );
-
-      setSelectedRegistrationId(null);
       setIsModalOpen(false);
+      setSelectedRegistrationId(null);
     } catch (err) {
       console.error(err);
-      alert("Something went wrong");
     }
   };
 
   // =========================
-  // Download Ticket (FIXED)
+  // Download Ticket
   // =========================
-  const handleDownloadTicket = async () => {
+  const handleDownloadTicket = async (ticket) => {
     try {
-      if (!selectedTicket) return;
-
-      const el = ticketRefs.current[selectedTicket._id];
+      const el = ticketRefs.current[ticket._id];
       if (!el) return;
 
       const canvas = await html2canvas(el, {
@@ -193,32 +192,32 @@ export default function CustomerDashboard() {
 
       const imgData = canvas.toDataURL("image/png");
 
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
+      const pdf = new jsPDF("portrait", "mm", "a4");
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const imgProps = pdf.getImageProperties(imgData);
 
-      let pdfHeight = (imgProps.height * (pdfWidth - 20)) / imgProps.width;
+      const pdfHeight =
+        (imgProps.height * (pdfWidth - 20)) / imgProps.width;
 
-      pdf.text("EventOne Ticket", 15, 15);
+      pdf.text("Event Ticket", 15, 15);
 
-      pdf.addImage(imgData, "PNG", 10, 25, pdfWidth - 20, pdfHeight);
+      pdf.addImage(
+        imgData,
+        "PNG",
+        10,
+        25,
+        pdfWidth - 20,
+        pdfHeight
+      );
 
-      const safe =
-        selectedTicket.event?.title
-          ?.replace(/\s+/g, "-")
-          ?.replace(/[^a-zA-Z0-9-_]/g, "")
-          ?.toUpperCase();
+      const safeName = ticket.event?.title
+        ?.replace(/\s+/g, "-")
+        ?.replace(/[^a-zA-Z0-9-_]/g, "");
 
-      const fileName = `ticket-${safe || "EVENT"}-${selectedTicket._id
-        .slice(-6)
-        .toUpperCase()}.pdf`;
-
-      pdf.save(fileName);
+      pdf.save(
+        `ticket-${safeName || "EVENT"}-${ticket._id.slice(-6)}.pdf`
+      );
     } catch (err) {
       console.error(err);
     }
@@ -239,34 +238,24 @@ export default function CustomerDashboard() {
   // =========================
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#09090b]">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="w-8 h-8 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   // =========================
-  // JSX
+  // UI
   // =========================
   return (
-    <div className="min-h-screen bg-background text-foreground pt-32 px-4 relative">
-
+    <div className="min-h-screen pt-32 px-4">
       <div className="max-w-7xl mx-auto">
 
         {/* Header */}
-        <div className="flex justify-between mb-10">
-          <div>
-            <h1 className="text-3xl font-bold">
-              Welcome back,{" "}
-              <span className="text-rose-500">
-                {user?.name || "User"}
-              </span>
-            </h1>
-          </div>
-
-          <span className="text-xs px-4 py-1 rounded-full border border-rose-500/30">
-            Customer Dashboard
-          </span>
+        <div className="mb-10">
+          <h1 className="text-3xl font-bold">
+            Welcome, {user?.name || "User"}
+          </h1>
         </div>
 
         {/* Tabs */}
@@ -276,7 +265,7 @@ export default function CustomerDashboard() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`pb-3 text-sm ${
+                className={`pb-2 ${
                   activeTab === tab
                     ? "text-orange-500 border-b-2 border-orange-500"
                     : "text-gray-400"
@@ -288,17 +277,15 @@ export default function CustomerDashboard() {
           )}
         </div>
 
-        {/* Content */}
+        {/* Tickets */}
         {activeTab === "Upcoming Tickets" && (
           <div className="space-y-6">
             {upcomingEvents.length === 0 ? (
               <div className="text-center py-20">
-                <Ticket className="mx-auto w-12 h-12" />
-                <h3 className="mt-4 text-xl font-semibold">
-                  No upcoming tickets
-                </h3>
+                <Ticket className="mx-auto w-10 h-10" />
+                <p className="mt-4">No tickets found</p>
 
-                <Button asChild className="mt-6">
+                <Button asChild className="mt-4">
                   <Link to="/#events">Browse Events</Link>
                 </Button>
               </div>
@@ -306,9 +293,9 @@ export default function CustomerDashboard() {
               upcomingEvents.map((reg) => (
                 <div
                   key={reg._id}
-                  className="border rounded-xl p-4 bg-card"
+                  className="border rounded-xl p-4"
                 >
-                  {/* ✅ FIX: ref per ticket */}
+                  {/* Ticket */}
                   <div
                     ref={(el) =>
                       (ticketRefs.current[reg._id] = el)
@@ -317,7 +304,7 @@ export default function CustomerDashboard() {
                   >
                     <div className="w-40 h-28 bg-gray-200 rounded" />
 
-                    <div className="flex-1">
+                    <div>
                       <h3 className="font-semibold">
                         {reg.event?.title}
                       </h3>
@@ -326,21 +313,28 @@ export default function CustomerDashboard() {
                         {reg.event?.description}
                       </p>
 
-                      <div className="text-xs mt-2">
-                        <Calendar className="inline w-3 h-3 mr-1" />
+                      <p className="text-xs mt-2">
+                        <Calendar className="inline w-3 h-3" />{" "}
                         {new Date(
                           reg.event?.date
                         ).toLocaleDateString()}
+                      </p>
+
+                      {/* Countdown Timer */}
+                      <div className="mt-2">
+                        <CountdownTimer
+                          eventDate={reg.event?.date}
+                        />
                       </div>
                     </div>
                   </div>
 
+                  {/* Actions */}
                   <div className="flex gap-2 mt-4">
                     <Button
-                      onClick={() => {
-                        setSelectedTicket(reg);
-                        handleDownloadTicket();
-                      }}
+                      onClick={() =>
+                        handleDownloadTicket(reg)
+                      }
                     >
                       Download
                     </Button>
@@ -366,7 +360,7 @@ export default function CustomerDashboard() {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onConfirm={handleCancelRegistration}
-          title="Cancel registration"
+          title="Cancel Registration"
           description="Are you sure?"
         />
       </div>
