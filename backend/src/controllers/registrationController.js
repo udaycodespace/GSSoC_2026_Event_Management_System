@@ -7,6 +7,7 @@ import { sendEmail } from '../utils/email.js';
 
 import path from 'path';
 import { createObjectCsvWriter } from 'csv-writer';
+import { emitRegistrationCount } from '../services/socket.js';
 
 // Register for event
 export const registerForEvent = async (req, res) => {
@@ -114,7 +115,11 @@ export const registerForEvent = async (req, res) => {
       }
     }
 
-    // Send email
+    emitRegistrationCount(
+      updatedEvent._id,
+      updatedEvent.registeredCount,
+    );
+
     try {
       await sendEmail({
         to: req.user.email,
