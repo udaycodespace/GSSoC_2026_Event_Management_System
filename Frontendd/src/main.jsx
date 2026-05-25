@@ -5,6 +5,7 @@ import "./index.css";
 import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import { SocketProvider } from "./context/SocketContext";
 import { registerSW } from 'virtual:pwa-register';
 
 // Register the PWA service worker
@@ -15,7 +16,9 @@ createRoot(document.getElementById("root")).render(
     <HelmetProvider>
       <ThemeProvider>
         <AuthProvider>
-          <App />
+          <SocketProvider>
+            <App />
+          </SocketProvider>
         </AuthProvider>
       </ThemeProvider>
     </HelmetProvider>

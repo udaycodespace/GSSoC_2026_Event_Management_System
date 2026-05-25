@@ -9,6 +9,7 @@ import path from 'path';
 import { calculateRefund } from '../utils/refundPolicy.js';
 import { createObjectCsvWriter } from 'csv-writer';
 import { emitRegistrationCount } from '../services/socket.js';
+import { createNotification } from './notificationController.js';
 
 
 export const registerForEvent = async (req, res) => {
@@ -170,6 +171,18 @@ export const registerForEvent = async (req, res) => {
         html: `<p>You are registered for ${event.title}.</p>`,
       });
     } catch (_) {}
+
+    // Send notification
+    try {
+      await createNotification(
+        req.user.id,
+        'registration_confirmed',
+        `Your registration for ${event.title} is confirmed`,
+        `/events/${event._id}`
+      );
+    } catch (notifErr) {
+      console.error('Failed to create notification:', notifErr);
+    }
 
     res.status(201).json({
       registration,
@@ -432,6 +445,17 @@ export const promoteFromWaitlist = async (eventId) => {
       `,
       });
     } catch (_) {}
+
+    try {
+      await createNotification(
+        nextRegistration.user._id,
+        'waitlist_promoted',
+        `Good news! A spot opened up for ${nextRegistration.event.title}`,
+        `/events/${nextRegistration.event._id}`
+      );
+    } catch (notifErr) {
+      console.error('Failed to create waitlist notification:', notifErr);
+    }
   };
 
 export const cancelRegistration = async (req, res) => {
